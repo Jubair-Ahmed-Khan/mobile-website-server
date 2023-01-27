@@ -9,32 +9,35 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+// const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+// const serviceAccount = require('./mobile-hut-firebase-adminsdk-gcnzr.json');
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-});
+// admin.initializeApp({
+//     credential: admin.credential.cert(serviceAccount)
+// });
 
 //middleware
 app.use(cors());
 app.use(express.json());
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ryj5i.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
+// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ryj5i.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://jubair:hellombstu@cluster0.ryj5i.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
+
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-async function verifyToken(req, res, next) {
-    if (req.headers?.authorization?.startsWith('Bearer ')) {
-        const token = req.headers.authorization.split(' ')[1];
-        try {
-            const decodedUser = await admin.auth().verifyIdToken(token);
-            req.decodedEmail = decodedUser.email;
-        }
-        catch {
+// async function verifyToken(req, res, next) {
+//     if (req.headers?.authorization?.startsWith('Bearer ')) {
+//         const token = req.headers.authorization.split(' ')[1];
+//         try {
+//             const decodedUser = await admin.auth().verifyIdToken(token);
+//             req.decodedEmail = decodedUser.email;
+//         }
+//         catch {
 
-        }
-    }
-    next();
-}
+//         }
+//     }
+//     next();
+// }
 
 async function run() {
     try {
@@ -67,7 +70,7 @@ async function run() {
         })
 
         // delete  api to delete a service 
-        app.delete('/deleteService/:id', verifyToken, async (req, res) => {
+        app.delete('/deleteService/:id', async (req, res) => {
 
             const id = req.params.id;
             // console.log(' deleteService/id ', id);
@@ -117,17 +120,17 @@ async function run() {
         })
 
         //get api for all orders
-        app.get('/orders', verifyToken, async (req, res) => {
-            const requester = req.decodedEmail;
+        app.get('/orders', async (req, res) => {
+            // const requester = req.decodedEmail;
             // console.log('requester', requester);
-            if (requester) {
-                const cursor = ordersCollection.find({});
-                const orders = await cursor.toArray();
-                res.send(orders);
-            }
-            else {
-                res.status(403).json({ message: 'You do not have access to all orders.' });
-            }
+            // if (requester) {
+            const cursor = ordersCollection.find({});
+            const orders = await cursor.toArray();
+            res.send(orders);
+            // }
+            // else {
+            //     res.status(403).json({ message: 'You do not have access to all orders.' });
+            // }
         });
 
         //post api to place a order
@@ -140,23 +143,23 @@ async function run() {
         })
 
         // get api to show my order (with token verification)
-        app.get('/myOrder', verifyToken, async (req, res) => {
+        app.get('/myOrder', async (req, res) => {
             const email = req.query.email;
-            const requester = req.decodedEmail;
-            console.log('requester', requester);
-            if (requester) {
-                const filter = { email };
-                const cursor = ordersCollection.find(filter);
-                const orders = await cursor.toArray();
-                res.send(orders);
-            }
-            else {
-                res.status(403).json({ message: 'You do not have access to orders.' });
-            }
+            // const requester = req.decodedEmail;
+            // console.log('requester', requester);
+            // if (requester) {
+            const filter = { email };
+            const cursor = ordersCollection.find(filter);
+            const orders = await cursor.toArray();
+            res.send(orders);
+            // }
+            // else {
+            //     res.status(403).json({ message: 'You do not have access to orders.' });
+            // }
         })
 
         //delete  api to delete an order
-        app.delete('/deleteOrder/:id', verifyToken, async (req, res) => {
+        app.delete('/deleteOrder/:id', async (req, res) => {
             const id = req.params.id;
             console.log(' delete/id ', id);
             const query = { _id: ObjectId(id) };
@@ -222,27 +225,27 @@ async function run() {
         })
 
         //put api to make a user admin (with token verification )
-        app.put('/users/admin', verifyToken, async (req, res) => {
+        app.put('/users/admin', async (req, res) => {
             const user = req.body;
-            const requester = req.decodedEmail;
+            // const requester = req.decodedEmail;
             // console.log('user to make admin ', user);
             // console.log('requester ', requester);
-            if (requester) {
-                const requesterAccount = await usersCollection.findOne({ email: requester });
-                // console.log('requesterAccount ', requesterAccount);
-                if (requesterAccount.role === 'admin') {
-                    const filter = { email: user.email.trim().toLowerCase() };
-                    const updateDoc = { $set: { role: 'admin' } };
-                    // console.log('filter ', filter);
+            // if (requester) {
+            // const requesterAccount = await usersCollection.findOne({ email: requester });
+            // console.log('requesterAccount ', requesterAccount);
+            // if (requesterAccount.role === 'admin') {
+            const filter = { email: user.email.trim().toLowerCase() };
+            const updateDoc = { $set: { role: 'admin' } };
+            // console.log('filter ', filter);
 
-                    const result = await usersCollection.updateOne(filter, updateDoc);
-                    // console.log('result ', result);
-                    res.json(result);
-                }
-            }
-            else {
-                res.status(403).json({ message: 'you do not have access to make admin' })
-            }
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            // console.log('result ', result);
+            res.json(result);
+            // }
+            // }
+            // else {
+            //     res.status(403).json({ message: 'you do not have access to make admin' })
+            // }
         })
     } finally {
         // the next line is commented, because connection is closing before trigger post
